@@ -1,6 +1,6 @@
 {
-  "name": "av/eventstrap",
-  "description": "Event based project bootstrapping",
+  "name": "av/eventdispatcher",
+  "description": "Event Dispatcher which can listen to event combinations ",
   "minimum-stability": "dev",
   "prefer-stable": true,
   "require": {
