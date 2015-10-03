@@ -127,7 +127,15 @@ final class ListenerState
     public function dispatch()
     {
         if ($this->isDispatchable()) {
-            call_user_func($this->listener, $this->dispatchedEvents);
+
+            $sorted = [];
+
+            foreach($this->attachedToEvents as $eventName)
+            {
+                $sorted[$eventName] = $this->dispatchedEvents[$eventName];
+            }
+
+            call_user_func($this->listener, $sorted);
             if ($this->purge) {
                 $this->dispatchedEvents = [];
             }
