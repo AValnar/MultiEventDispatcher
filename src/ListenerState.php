@@ -1,4 +1,5 @@
 <?php
+declare(strict_types = 1);
 /**
  * Copyright (C) 2015  Alexander Schmidt
  *
@@ -54,7 +55,7 @@ final class ListenerState
      * @param int $state
      * @param string[] $attachedToEvents
      */
-    public function __construct($listener, $state, ...$attachedToEvents)
+    public function __construct(callable $listener, int $state, string ...$attachedToEvents)
     {
         $this->listener = $listener;
         $this->purge = true;
@@ -69,7 +70,7 @@ final class ListenerState
     /**
      * @return callable
      */
-    public function getListener()
+    public function getListener() : callable
     {
         return $this->listener;
     }
@@ -77,7 +78,7 @@ final class ListenerState
     /**
      * @return string[]
      */
-    public function getAttachedToEvents()
+    public function getAttachedToEvents() : array
     {
         return $this->attachedToEvents;
     }
@@ -85,7 +86,7 @@ final class ListenerState
     /**
      * @return int
      */
-    public function getState()
+    public function getState() : int
     {
         return $this->state;
     }
@@ -94,7 +95,7 @@ final class ListenerState
     /**
      * @return Event[]
      */
-    public function getDispatchedEvents()
+    public function getDispatchedEvents() : array
     {
         return $this->dispatchedEvents;
     }
@@ -104,8 +105,12 @@ final class ListenerState
      * @param Event $dispatchedEvent
      * @return self
      */
-    public function addDispatchedEvent($eventName, Event $dispatchedEvent)
+    public function addDispatchedEvent(string $eventName, Event $dispatchedEvent) : self
     {
+        if (!in_array($eventName, $this->attachedToEvents)) {
+            return $this;
+        }
+
         if ($this->state === EventDispatcher::USE_ALL) {
             $this->dispatchedEvents[$eventName][] = $dispatchedEvent;
         } elseif ($this->state === EventDispatcher::USE_LAST) {
@@ -145,7 +150,7 @@ final class ListenerState
     /**
      * @return bool
      */
-    public function isDispatchable()
+    public function isDispatchable() : bool
     {
         foreach ($this->attachedToEvents as $eventName) {
             if (!isset($this->dispatchedEvents[$eventName])) {

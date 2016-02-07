@@ -1,4 +1,5 @@
 <?php
+declare(strict_types = 1);
 /**
  * Copyright (C) 2015  Alexander Schmidt
  *
@@ -50,7 +51,7 @@ final class EventDispatcherImpl implements EventDispatcher
      *
      * @api
      */
-    public function dispatch($eventName, Event $event = null)
+    public function dispatch(string $eventName, Event $event = null) : Event
     {
         if (null === $event) {
             $event = new Event();
@@ -61,8 +62,7 @@ final class EventDispatcherImpl implements EventDispatcher
         }
 
         /** @var ListenerState[] $listenerStates */
-        foreach($this->listenerStates[$eventName] as $listenerState)
-        {
+        foreach ($this->listenerStates[$eventName] as $listenerState) {
             $listenerState->addDispatchedEvent($eventName, $event);
         }
 
@@ -87,15 +87,14 @@ final class EventDispatcherImpl implements EventDispatcher
      *
      * @api
      */
-    public function addListener($listener, $useEvent = self::USE_ALL, ...$eventNames)
+    public function addListener(callable $listener, int $useEvent = self::USE_ALL, string ...$eventNames)
     {
         if (empty($eventNames)) return;
 
         // create ListenerState
         $listenerState = new ListenerState($listener, $useEvent, ...$eventNames);
 
-        foreach($eventNames as $eventName)
-        {
+        foreach ($eventNames as $eventName) {
             if (!isset($this->listenerStates[$eventName])) {
                 $this->listenerStates[$eventName] = [];
             }
@@ -111,13 +110,42 @@ final class EventDispatcherImpl implements EventDispatcher
     }
 
     /**
+     * Adds an event subscriber that listens on the specified events.
+     * Internally this will convert all handlers to listeners.
+     *
+     * @param EventSubscriber $eventSubscriber The subscriber
+     * @throws \InvalidArgumentException
+     *
+     * @api
+     */
+    public function addSubscriber(EventSubscriber $eventSubscriber)
+    {
+        $listeners = $eventSubscriber->getEvents();
+
+        foreach($listeners as $listener => $data)
+        {
+            if (!isset($data[0]) || !is_array($data[0])) {
+                throw new \InvalidArgumentException('Events defined for ' . get_class($eventSubscriber) . '::' . $listener . ' has to be an array');
+            }
+
+            $type = $data[1] ?? self::USE_ALL;
+            // horrible hack due to array not being a callable in this case ... whut?
+            $listenerCallable = function($events) use ($eventSubscriber, $listener) {
+                $eventSubscriber->{$listener}($events);
+            };
+            $this->addListener($listenerCallable, $type, ...$data[0]);
+        }
+    }
+
+
+    /**
      * Gets the listeners of a specific event
      *
      * @param string[] $eventNames The name of the events
      *
      * @return array The event listeners for the specified event combination
      */
-    public function getListeners(...$eventNames)
+    public function getListeners(string ...$eventNames) : array
     {
         if (empty($eventNames)) return [];
 
@@ -132,7 +160,7 @@ final class EventDispatcherImpl implements EventDispatcher
      *
      * @return bool true if the specified event combination has any listeners, false otherwise
      */
-    public function hasListeners(...$eventNames)
+    public function hasListeners(string ...$eventNames) : bool
     {
         if (empty($eventNames)) return false;
 

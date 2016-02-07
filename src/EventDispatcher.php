@@ -1,4 +1,6 @@
 <?php
+declare(strict_types = 1);
+
 /**
  * Copyright (C) 2015  Alexander Schmidt
  *
@@ -45,7 +47,7 @@ interface EventDispatcher
      *
      * @api
      */
-    public function dispatch($eventName, Event $event = null);
+    public function dispatch(string $eventName, Event $event = null) : Event;
 
     /**
      * Adds an event listener that listens on the specified events.
@@ -65,7 +67,18 @@ interface EventDispatcher
      *
      * @api
      */
-    public function addListener($listener, $useEvent = self::USE_ALL, ...$eventNames);
+    public function addListener(callable $listener, int $useEvent = self::USE_ALL, string ...$eventNames);
+
+    /**
+     * Adds an event subscriber that listens on the specified events.
+     * Internally this will convert all handlers to listeners.
+     *
+     * @param EventSubscriber $eventSubscriber  The subscriber
+     * @throws \InvalidArgumentException
+     *
+     * @api
+     */
+    public function addSubscriber(EventSubscriber $eventSubscriber);
 
     /**
      * Gets the listeners of a specific event
@@ -74,7 +87,7 @@ interface EventDispatcher
      *
      * @return array The event listeners for the specified event combination
      */
-    public function getListeners(...$eventNames);
+    public function getListeners(string ...$eventNames) : array;
 
     /**
      * Checks whether an event has any registered listeners.
@@ -83,5 +96,5 @@ interface EventDispatcher
      *
      * @return bool true if the specified event combination has any listeners, false otherwise
      */
-    public function hasListeners(...$eventNames);
+    public function hasListeners(string ...$eventNames) : bool;
 }
