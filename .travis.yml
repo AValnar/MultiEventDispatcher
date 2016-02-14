@@ -1,0 +1,14 @@
+language: php
+php:
+  - 7.0
+  - hhvm
+matrix:
+  allow_failures:
+    - php: hhvm
+install:
+  - composer self-update
+  - composer install
+script: vendor/bin/phpunit
+after_script:
+  - wget https://scrutinizer-ci.com/ocular.phar
+  - php ocular.phar code-coverage:upload --format=php-clover /tmp/coverage.xml
