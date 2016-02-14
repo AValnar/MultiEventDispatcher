@@ -199,7 +199,7 @@ final class EventDispatcherImpl implements EventDispatcher
         if (empty($eventNames)) return [];
 
         $key = implode('|', $eventNames);
-        return $this->combinationListeners[$key];
+        return $this->combinationListeners[$key] ?? [];
     }
 
     /**
@@ -211,9 +211,6 @@ final class EventDispatcherImpl implements EventDispatcher
      */
     public function hasListeners(string ...$eventNames) : bool
     {
-        if (empty($eventNames)) return false;
-
-        $key = implode('|', $eventNames);
-        return isset($this->combinationListeners[$key]);
+        return !empty($this->getListeners(...$eventNames));
     }
 }
