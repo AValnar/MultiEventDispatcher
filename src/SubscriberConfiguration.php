@@ -17,29 +17,65 @@ declare(strict_types = 1);
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * @author     Alexander Schmidt <mail@story75.com>
  * @copyright  Copyright (c) 2016, Alexander Schmidt
- * @date       07.02.16
+ * @date       14.02.16
  */
 
 namespace AValnar\EventDispatcher;
 
 
-interface EventSubscriber
+final class SubscriberConfiguration
 {
     /**
-     * Return a list of events linked to their subscriber methods like so:
-     *
-     * [
-     *  'onFooEvent' => [['fooEvent']],
-     *  'onBarEvent' => [['barEvent']],
-     *  'onMultiEventEvent' => [['orderEvent', 'orderMailedEvent'], EventDispatcher::USE_LAST],
-     *  ...
-     * ]
-     *
-     * Since 1.2 you can also use a SubscriberConfiguration object instead of arrays which
-     * will be the goto option in 2.0
-     *
-     * @return array
-     * @api
+     * @var array
      */
-    public function getEvents() : array;
+    private $events;
+
+    /**
+     * @var int
+     */
+    private $useType;
+
+    /**
+     * @var int
+     */
+    private $weight;
+
+    /**
+     * SubscriberConfiguration constructor.
+     * @param array $events
+     * @param int $useType
+     * @param int $weight
+     */
+    public function __construct(array $events, int $useType, int $weight)
+    {
+        $this->events = $events;
+        $this->useType = $useType;
+        $this->weight = $weight;
+    }
+
+    /**
+     * @return array
+     */
+    public function getEvents() : array
+    {
+        return $this->events;
+    }
+
+    /**
+     * @return int
+     */
+    public function getUseType() : int
+    {
+        return $this->useType;
+    }
+
+    /**
+     * @return int
+     */
+    public function getWeight() : int
+    {
+        return $this->weight;
+    }
+
+
 }

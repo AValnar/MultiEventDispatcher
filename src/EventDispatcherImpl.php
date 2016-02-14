@@ -28,8 +28,9 @@ final class EventDispatcherImpl implements EventDispatcher
 
     /**
      * Listeners with one or multiple events attached stores by eventName
+     * @TODO check memory consumption
      *
-     * @var ListenerState[][]
+     * @var ListenerState[][][]
      */
     private $listenerStates = [];
 
@@ -62,8 +63,10 @@ final class EventDispatcherImpl implements EventDispatcher
         }
 
         /** @var ListenerState[] $listenerStates */
-        foreach ($this->listenerStates[$eventName] as $listenerState) {
-            $listenerState->addDispatchedEvent($eventName, $event);
+        foreach ($this->listenerStates[$eventName] as $weightedListenerState) {
+            foreach ($weightedListenerState as $weight => $listenerState) {
+                $listenerState->addDispatchedEvent($eventName, $event);
+            }
         }
 
         return $event;
@@ -78,18 +81,49 @@ final class EventDispatcherImpl implements EventDispatcher
      *                            USE_ALL will dispatch all matching event objects
      *                            USE_FIRST will dispatch the first matching event object
      *                            USE_LAST will dispatch the last matching event object
-     *                            e.g. The listener will listen to the event combination
-     *                            [ foo, bar, baz ].
+     *                            You can use any of the above in combination with NO_PURGE
+     *                            to disable the automatic event clear in a ListenerState
      *
      * @param string[] $eventNames The events to listen on. You can pass multiple events which
      *                            means that this listener will only trigger if all 3 events have
      *                            been fired at least once.
      *
      * @api
+     * @deprecated Will be replaced in 2.0 in by addWeightedListener
      */
     public function addListener(callable $listener, int $useEvent = self::USE_ALL, string ...$eventNames)
     {
+        $this->addWeightedListener($listener, $useEvent, 100, ...$eventNames);
+    }
+
+    /**
+     * Adds an event listener that listens on the specified events.
+     *
+     * @param callable $listener The listener
+     *
+     * @param int $useEvent         USE_ALL will dispatch all matching event objects
+     *                              USE_FIRST will dispatch the first matching event object
+     *                              USE_LAST will dispatch the last matching event object
+     *                              You can use any of the above in combination with NO_PURGE
+     *                              to disable the automatic event clear in a ListenerState
+     *
+     * @param int $weight           Set a weight for this listener, lighter ones will be called first
+     *
+     * @param string[] $eventNames  The events to listen on. You can pass multiple events which
+     *                              means that this listener will only trigger if all 3 events have
+     *                              been fired at least once.
+     *
+     * @api
+     */
+    public function addWeightedListener(
+        callable $listener,
+        int $useEvent = self::USE_LAST,
+        int $weight = 100,
+        string ...$eventNames
+    ) {
         if (empty($eventNames)) return;
+
+        $eventNames = array_unique($eventNames);
 
         // create ListenerState
         $listenerState = new ListenerState($listener, $useEvent, ...$eventNames);
@@ -98,7 +132,11 @@ final class EventDispatcherImpl implements EventDispatcher
             if (!isset($this->listenerStates[$eventName])) {
                 $this->listenerStates[$eventName] = [];
             }
-            array_push($this->listenerStates[$eventName], $listenerState);
+            if (!isset($this->listenerStates[$eventName][$weight])) {
+                $this->listenerStates[$eventName][$weight] = [];
+            }
+            array_push($this->listenerStates[$eventName][$weight], $listenerState);
+            ksort($this->listenerStates[$eventName]);
         }
 
         $key = implode('|', $eventNames);
@@ -124,16 +162,27 @@ final class EventDispatcherImpl implements EventDispatcher
 
         foreach($listeners as $listener => $data)
         {
-            if (!isset($data[0]) || !is_array($data[0])) {
-                throw new \InvalidArgumentException('Events defined for ' . get_class($eventSubscriber) . '::' . $listener . ' has to be an array');
+            if (is_array($data)) {
+                $data = new SubscriberConfiguration($data[0], $data[1] ?? self::USE_ALL, $data[2] ?? 100);
             }
 
-            $type = $data[1] ?? self::USE_ALL;
+            if (!$data instanceof SubscriberConfiguration) {
+                throw new \InvalidArgumentException(
+                    'SubscriberConfiguration for ' . $listener . ' in ' . get_class($eventSubscriber) . ' is invalid!'
+                );
+            }
+
             // horrible hack due to array not being a callable in this case ... whut?
             $listenerCallable = function($events) use ($eventSubscriber, $listener) {
                 $eventSubscriber->{$listener}($events);
             };
-            $this->addListener($listenerCallable, $type, ...$data[0]);
+
+            $this->addWeightedListener(
+                $listenerCallable,
+                $data->getUseType(),
+                $data->getWeight(),
+                ...$data->getEvents()
+            );
         }
     }
 

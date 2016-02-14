@@ -66,14 +66,45 @@ interface EventDispatcher
      *                            been fired at least once.
      *
      * @api
+     * @deprecated Will be replaced in 2.0 in by addWeightedListener
      */
-    public function addListener(callable $listener, int $useEvent = self::USE_ALL, string ...$eventNames);
+    public function addListener(
+        callable $listener,
+        int $useEvent = self::USE_ALL,
+        string ...$eventNames
+    );
+
+    /**
+     * Adds an event listener that listens on the specified events.
+     *
+     * @param callable $listener The listener
+     *
+     * @param int $useEvent         USE_ALL will dispatch all matching event objects
+     *                              USE_FIRST will dispatch the first matching event object
+     *                              USE_LAST will dispatch the last matching event object
+     *                              You can use any of the above in combination with NO_PURGE
+     *                              to disable the automatic event clear in a ListenerState
+     *
+     * @param int $weight           Set a weight for this listener, lighter ones will be called first
+     *
+     * @param string[] $eventNames  The events to listen on. You can pass multiple events which
+     *                              means that this listener will only trigger if all 3 events have
+     *                              been fired at least once.
+     *
+     * @api
+     */
+    public function addWeightedListener(
+        callable $listener,
+        int $useEvent = self::USE_LAST,
+        int $weight = 100,
+        string ...$eventNames
+    );
 
     /**
      * Adds an event subscriber that listens on the specified events.
      * Internally this will convert all handlers to listeners.
      *
-     * @param EventSubscriber $eventSubscriber  The subscriber
+     * @param EventSubscriber $eventSubscriber The subscriber
      * @throws \InvalidArgumentException
      *
      * @api
